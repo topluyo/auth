@@ -5,31 +5,19 @@ require_once __DIR__."/.API_KEY.php";     // Defining at here $API_KEY value
 
 // TPAuth Class
 class TPAuth{
-  private static function decrypt_checksum(string $message) {
-    if (strlen($message) < 2) {
-      return false;
-    }
-    $checksumChar = $message[0];
-    $actualMessage = substr($message, 1);
-    $sum = 0;
-    for ($i = 0; $i < strlen($actualMessage); $i++) {
-      $sum += ord($actualMessage[$i]);
-    }
-    $expectedChecksum = chr($sum % 255);
-    if ($checksumChar === $expectedChecksum) {
-      return $actualMessage;
-    } else {
-      return false;
-    }
-  }
-
+  
   private static function decrypt($encryptedData, $password) {
     $method = 'aes-256-cbc';
     $password = substr(hash('sha256', $password, true), 0, 32);
     $iv = chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0);
     $decrypted = openssl_decrypt(base64_decode($encryptedData), $method, $password, OPENSSL_RAW_DATA, $iv);
-    $decrypted = self::decrypt_checksum($decrypted);
-    return $decrypted;
+    $checksum = substr($decrypted,0,4);
+    $message  = substr($decrypted,4);
+    if(substr(md5($message),0,4)==$checksum){
+      return $message;
+    }else{
+      return "";
+    }  
   }
 
   public static function user(){
@@ -160,13 +148,4 @@ window.addEventListener('message', (event) => {
 
     <?php 
   }
-
-  
-
 }
-
-
-
-
-
-
