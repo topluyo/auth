@@ -6,6 +6,7 @@ require_once __DIR__."/.API_KEY.php";     // Defining at here $API_KEY value
 // TPAuth Class
 class TPAuth{
   
+
   private static function decrypt($encryptedData, $password) {
     $method = 'aes-256-cbc';
     $password = substr(hash('sha256', $password, true), 0, 32);
@@ -67,7 +68,12 @@ class TPAuth{
         $domain = $parsed['host'] ?? '';
         $path = $parsed['path'] ?? '';        
 
-        setcookie($name, $value, $expire, $path);
+        setcookie($name, $value, [
+            'expires' => $expire,
+            'path' => $path,
+            'secure' => true, // Required when SameSite=None
+            'samesite' => 'None'
+        ]);
       
         //@ Echo here redirect url
         $REDIRECT = $url;
@@ -117,7 +123,7 @@ window.addEventListener('message', (event) => {
 
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = "?";
+    form.action = location.search;
 
     const input = document.createElement("input");
     input.type = "hidden";
@@ -148,4 +154,7 @@ window.addEventListener('message', (event) => {
 
     <?php 
   }
+
+  
+
 }
