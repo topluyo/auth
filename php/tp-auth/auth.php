@@ -1,12 +1,11 @@
 <?php
 
 // Get API Key from market.topluyo.com ---------
-require_once __DIR__."/.API_KEY.php";     // Defining at here $API_KEY value
+require_once __DIR__."/API_KEY.php";     // Defining at here $API_KEY value
 
 // TPAuth Class
 class TPAuth{
   
-
   private static function decrypt($encryptedData, $password) {
     $method = 'aes-256-cbc';
     $password = substr(hash('sha256', $password, true), 0, 32);
@@ -32,6 +31,10 @@ class TPAuth{
     
   public static function login($options=[]){
     global $API_KEY;
+    if( !(isset($_GET['>start']) || isset($_POST['>auth']))  ){
+      if(self::user()) return self::user();
+    }
+    
 
     // CORS Access ---------
     ini_set('session.cookie_samesite', 'None');
@@ -153,8 +156,6 @@ window.addEventListener('message', (event) => {
 </script>
 
     <?php 
+    die();
   }
-
-  
-
 }
