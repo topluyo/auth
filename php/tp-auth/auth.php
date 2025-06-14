@@ -46,8 +46,6 @@ class TPAuth{
 
 
     
-    //! here fix here get cookie from xyz
-
     // Auth --------------------------------------
     if(isset($_POST['>auth'])){
       $auth_code = $_POST['>auth'];
@@ -60,23 +58,21 @@ class TPAuth{
         $value  = $_POST['>auth'];
         $expire = time()+3600*24*7;
 
-
-        $url = $options['redirect']($response);
+        $url = ($options['path'] ? $options['path'] : $options['redirect'])($response);
         
-
         $parsed = parse_url($url);
         $domain = $parsed['host'] ?? '';
         $path = $parsed['path'] ?? '';        
 
         setcookie($name, $value, [
-            'expires' => $expire,
-            'path' => $path,
-            'secure' => true, // Required when SameSite=None
-            'samesite' => 'None'
+          'expires' => $expire,
+          'path' => $path,
+          'secure' => true, // Required when SameSite=None
+          'samesite' => 'None'
         ]);
       
         //@ Echo here redirect url
-        $REDIRECT = $url;
+        $REDIRECT = $options['redirect']($response);
         if(isset($_POST['redirect']) && $_POST['redirect']==1){
           // Open in new window
           echo $REDIRECT;
