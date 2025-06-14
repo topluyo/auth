@@ -1,10 +1,9 @@
 <?php
 
-// Get API Key from market.topluyo.com ---------
-require_once __DIR__."/API_KEY.php";     // Defining at here $API_KEY value
-
 // TPAuth Class
 class TPAuth{
+
+  public static $API_KEY = "";
   
   private static function decrypt($encryptedData, $password) {
     $method = 'aes-256-cbc';
@@ -21,16 +20,14 @@ class TPAuth{
   }
 
   public static function user(){
-    global $API_KEY;
     if(!isset($_COOKIE['tp_auth'])) return false;
-    $response = self::decrypt($_COOKIE['tp_auth'],$API_KEY);
+    $response = self::decrypt($_COOKIE['tp_auth'],self::$API_KEY);
     $response = json_decode($response,true);
     if(!$response) return false;
     return $response;
   }
     
   public static function login($options=[]){
-    global $API_KEY;
     if( !(isset($_GET['>start']) || isset($_POST['>auth']))  ){
       if(self::user()) return self::user();
     }
@@ -54,7 +51,7 @@ class TPAuth{
     // Auth --------------------------------------
     if(isset($_POST['>auth'])){
       $auth_code = $_POST['>auth'];
-      $response = self::decrypt($auth_code,$API_KEY);
+      $response = self::decrypt($auth_code,self::$API_KEY);
       if($response!=false){
         $response = json_decode($response,true);
 
@@ -65,7 +62,7 @@ class TPAuth{
 
 
         $url = $options['redirect']($response);
-
+        
 
         $parsed = parse_url($url);
         $domain = $parsed['host'] ?? '';
@@ -157,5 +154,5 @@ window.addEventListener('message', (event) => {
 
     <?php 
     die();
-  }
-}
+  } //@ END LOGIN
+}//@ END CLASS
