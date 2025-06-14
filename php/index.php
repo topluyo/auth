@@ -8,7 +8,7 @@ require_once __DIR__."/.ENV.php";
 
 $user = TPAuth::login([
   "app_id" => "91",
-  "path" = function($user){
+  "path" => function($user){
     return $_SERVER['SERVER_NAME'];
   },
   "redirect" => function($user) {
