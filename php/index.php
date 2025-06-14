@@ -2,11 +2,15 @@
 
 require_once __DIR__."/tp-auth/auth.php";
 
+require_once __DIR__."/.ENV.php";
+// or
+//TPAuth::$API_KEY = "XXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+
 $user = TPAuth::login([
-  "app_id" => "1",
+  "app_id" => "91",
   "path" = function($user){
     return $_SERVER['SERVER_NAME'];
-  }
+  },
   "redirect" => function($user) {
     return $_SERVER['SERVER_NAME'];
   }
@@ -14,7 +18,6 @@ $user = TPAuth::login([
 
 
 ?>
-
 <script src="//hasandelibas.github.io/documenter/documenter.js"></script>
 <meta charset="utf8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
