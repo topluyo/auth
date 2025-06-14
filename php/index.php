@@ -1,11 +1,14 @@
-<?php 
+<?php
 
 require_once __DIR__."/tp-auth/auth.php";
 
 $user = TPAuth::login([
-  "app_id" => "91",
+  "app_id" => "1",
+  "path" = function($user){
+    return $_SERVER['SERVER_NAME'];
+  }
   "redirect" => function($user) {
-    return "https://kodluyo.bozkurtbot.com/";
+    return $_SERVER['SERVER_NAME'];
   }
 ]);
 
