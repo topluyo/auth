@@ -1,5 +1,32 @@
 <?php
 
+
+/*
+
+
+OUT IFRAME:
+  > if not logged
+    redirect topluyo.com/!auth/APP_ID
+      <auth  -> send auth request to topluyo    
+      >login -> topluyo to app
+      >auth  -> app to app server
+        {path,redirect} 
+      <redirect -> app to topluyo
+      -> redirect link opening
+
+In Iframe:
+  <auth -> send auth request to topluyo
+  >auth -> topluyo to app
+  >auth -> app to app server
+    {path,redirect}
+    redirect in iframe auto
+  
+
+
+*/
+
+
+
 // TPAuth Class
 class TPAuth{
 
@@ -28,12 +55,14 @@ class TPAuth{
   }
     
   public static function login($options=[]){
-    if( !(isset($_GET['>start']) || isset($_POST['>auth']))  ){
-      if(self::user()) return self::user();
-    }
+    //echo "LOGIN REQUEST\n";
+    //if( !(isset($_GET['>start']) || isset($_POST['>auth']))  ){
+    //  if(self::user() && self::user()['user_id']!="-1" ) return self::user();
+    //}
     
 
     // CORS Access ---------
+    
     ini_set('session.cookie_samesite', 'None');
     session_set_cookie_params(['samesite' => 'None']);
     session_start();
@@ -43,13 +72,16 @@ class TPAuth{
     header('Access-Control-Allow-Origin: ' . (isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*'));
     header('X-Frame-Options: ALLOWALL');
     header('Content-Security-Policy: frame-ancestors *');
-
+    
 
     
     // Auth --------------------------------------
     if(isset($_POST['>auth'])){
       $auth_code = $_POST['>auth'];
+      //echo "AUTH CODE INCOMING\n";
       $response = self::decrypt($auth_code,self::$API_KEY);
+      //echo $response != false ? "USER SUCCESS\n" : "USER FAIL\n"; 
+      
       if($response!=false){
         $response = json_decode($response,true);
 
@@ -58,38 +90,47 @@ class TPAuth{
         $value  = $_POST['>auth'];
         $expire = time()+3600*24*7;
 
-        $url = ($options['path'] ? $options['path'] : $options['redirect'])($response);
+        $query = json_decode($_REQUEST["query"],true);
+
+        $url = (isset($options['path']) ? $options['path'] : $options['redirect'])($response,$query);
+        
+        //echo $url;
         
         $parsed = parse_url($url);
         $domain = $parsed['host'] ?? '';
         $path = $parsed['path'] ?? '';        
 
+        /*
         setcookie($name, $value, [
           'expires' => $expire,
           'path' => $path,
           'secure' => true, // Required when SameSite=None
           'samesite' => 'None'
         ]);
-      
+        */
+        //echo "SUCCESS SAVE CODE\n";
+
         //@ Echo here redirect url
-        $REDIRECT = $options['redirect']($response);
+        $REDIRECT = $options['redirect']($response,$query);
         if(isset($_POST['redirect']) && $_POST['redirect']==1){
           // Open in new window
-          echo $REDIRECT;
+          echo json_encode(["state"=>"success","path"=>$path,"redirect"=>$REDIRECT]);
+          exit();
+          //echo $REDIRECT;
         }else{
           // In APP
           header("Location: ".$REDIRECT);
         }
       }else{
-        echo "[Auth problem]";
+        echo json_encode(["state"=>"error","message"=>"[Auth Problem]"]);
       }
       exit();
     }
     ?>
 
 <!-- HTML Content For Loading -->
-<div style="position:fixed;bottom:50%;left:50%;transform:translate(-50%,-50%);font-family:system-ui;font-size:5vmin;opacity:0.7;"> 
-  Yönlendiriliyor
+<div id="message" style="position:fixed;bottom:50%;left:50%;transform:translate(-50%,-50%);font-family:system-ui;font-size:5vmin;opacity:0.7;"> 
+  Routing
 </div>
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="position:fixed;bottom:10%;left:50%;transform:translate(-50%);height:12%;aspect-ratio:1;border:none;background-color: transparent;border-radius:20%;">
@@ -107,41 +148,52 @@ class TPAuth{
 <!-- Auth Script Code -->
 <script>
 window.addEventListener("DOMContentLoaded",function(){
-  window.top.postMessage(JSON.stringify({action:"<auth",url:location.href}), '*');
+  debugger
+  if(window.top) 
+    window.top.postMessage(JSON.stringify({action:"<auth",url:location.href}), '*');
   if(window.top==window){
     window.location.href = "https://topluyo.com/!auth/<?= $options['app_id'] ?>";
   }
 })
+const queryParams = JSON.stringify( Object.fromEntries(new URLSearchParams(window.location.search)) );
 window.addEventListener('message', (event) => {
+  console.log(":::: MESSAGE INCOMING ::::")
   if (!event.origin.endsWith("topluyo.com")) return;
   let data = JSON.parse(event.data)
+  debugger
   if(data[">auth"]){
-
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = location.search;
-
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = ">auth";
-    input.value = data[">auth"];
-
-    form.appendChild(input);
-    document.body.appendChild(form);
-
-    form.submit();
-  }
-
-  if(data[">login"]){
-    fetch("?", {
+    fetch("?fetch=fetch", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({ ">auth": data[">login"], "redirect":1 }),
-    }).then(e=>e.text()).then(e=>{
+      body: new URLSearchParams({ ">auth": data[">auth"], "redirect":1 ,"query":queryParams }),
+    }).then(e=>e.json()).then(e=>{
+      if(e.state=="error") return document.getElementById("message").innerHTML = e.message;
       //document.write(e)
-      window.top.postMessage(JSON.stringify({action:"<redirect",url:location.href, redirect:e}), '*');
+      debugger
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + 7); // 7 gün sonra süresi dolacak
+      document.cookie = `tp_auth=${data['>auth']}; path=${e.path}; expires=${expiry.toUTCString()}; SameSite=Lax; Secure`;
+      location.href = e.redirect
+    })
+  }
+
+  if(data[">login"]){
+    fetch("?fetch=fetch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ ">auth": data[">login"], "redirect":1,"query":queryParams }),
+    }).then(e=>e.json()).then(e=>{
+      if(e.state=="error") return document.getElementById("message").innerHTML = e.message;
+      //document.write(e)
+      debugger
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + 7); // 7 gün sonra süresi dolacak
+      document.cookie = `tp_auth=${data['>login']}; path=${e.path}; expires=${expiry.toUTCString()}; SameSite=Lax; Secure`;
+      window.top.postMessage(JSON.stringify({action:"<redirect",url:location.href, redirect:e.redirect}), '*');
     })
   }
 
