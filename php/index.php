@@ -1,21 +1,22 @@
 <?php
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 
 require_once __DIR__."/tp-auth/auth.php";
 
-require_once __DIR__."/.ENV.php";
-// or
-//TPAuth::$API_KEY = "XXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+TPAuth::$API_KEY = "YOUR SECRET KEY";
 
 $user = TPAuth::login([
-  "app_id" => "91",
-  "path" => function($user){
+  "app_id" => "1",
+  "path" => function($user,$query){
     return $_SERVER['SERVER_NAME'];
   },
-  "redirect" => function($user) {
-    return $_SERVER['SERVER_NAME'];
+  "redirect" => function($user,$query) {
+    return "https://".$_SERVER['SERVER_NAME'];
   }
 ]);
-
 
 ?>
 <script src="//hasandelibas.github.io/documenter/documenter.js"></script>
